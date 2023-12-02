@@ -1,103 +1,101 @@
+//3E33912F8BAA7542FC4A1585D2DB6FE0312725B9 
 #include "helperStructs.h"
 #include "globalFunctions.h"
 #include <random>
-#include <vector>
-#include <limits>
 
-class FASTZoo {
+class FASTZoo
+{
 private:
     uint32_t numCages;
     std::vector<Vertex> vertices;
-    std::mt19937 gen; // Random number generator
-    std::vector<std::vector<double>> distanceMatrix; // Precomputed distance matrix
-
-    size_t getRandomNode(const std::vector<char>& includedInMST) {
-        std::uniform_int_distribution<> distr(0, numCages - 1);
-        size_t randomNode;
-        do {
-            randomNode = distr(gen);
-        } while (includedInMST[randomNode]);
-        return randomNode;
-    }
-
-    void precomputeDistances() {
-        distanceMatrix.resize(numCages, std::vector<double>(numCages));
-        for (size_t i = 0; i < numCages; ++i) {
-            for (size_t j = 0; j < numCages; ++j) {
-                if (i != j) {
-                    distanceMatrix[i][j] = calculateDistance(vertices[i], vertices[j]);
-                }
-            }
-        }
-    }
 
 public:
-    FASTZoo(uint32_t cages, std::vector<Vertex> &v) 
-        : numCages(cages), vertices(v), gen(std::random_device()()) {
-        precomputeDistances();
-    }
+    FASTZoo(uint32_t cages, std::vector<Vertex> &v) : numCages(cages), vertices(v) {}
+    void outputPath(std::vector<size_t> &cageParent);
+    std::vector<size_t> createOptimalPath();
+    double getTotalWeight(std::vector<size_t> &cageParent);
+};
 
-    std::vector<size_t> createOptimalPath() {
-        std::vector<char> includedInMST(numCages, false);
-        std::vector<size_t> cageComingFrom(numCages, std::numeric_limits<size_t>::max());
+size_t getRandomNode(const std::vector<bool>& includedInMST, uint32_t numCages) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distr(0, numCages - 1);
 
-        size_t startNode = getRandomNode(includedInMST);
-        includedInMST[startNode] = true;
-        cageComingFrom[startNode] = startNode;
-        size_t nodesIncluded = 1;
+    size_t randomNode;
+    do {
+        randomNode = distr(gen);
+    } while (includedInMST[randomNode]); // Ensure the node is not already included in the tour
 
-        while (nodesIncluded < numCages) {
-            size_t randomNode = getRandomNode(includedInMST);
-            double minDistanceIncrease = std::numeric_limits<double>::max();
-            size_t insertAfter = startNode;
-            size_t insertBefore = cageComingFrom[startNode];
+    return randomNode;
+}
 
-            for (size_t i = 0; i < numCages; i++) {
-                if (includedInMST[i] && cageComingFrom[i] != std::numeric_limits<size_t>::max()) {
-                    size_t nextI = cageComingFrom[i];
-                    double distanceToI = distanceMatrix[randomNode][i];
-                    double distanceFromItoNext = distanceMatrix[i][nextI];
-                    double newDistanceIfInserted = distanceToI + distanceMatrix[randomNode][nextI] - distanceFromItoNext;
+// Using random random insertion technique for path creation
+std::vector<size_t> FASTZoo::createOptimalPath() {
+    std::vector<bool> includedInMST(numCages, false);
+    std::vector<size_t> cageComingFrom(numCages, std::numeric_limits<size_t>::max());
 
-                    if (newDistanceIfInserted < minDistanceIncrease) {
-                        minDistanceIncrease = newDistanceIfInserted;
-                        insertAfter = i;
-                        insertBefore = nextI;
-                    }
+    // Start from a random node
+    size_t startNode = getRandomNode(includedInMST, numCages);
+    includedInMST[startNode] = true;
+    cageComingFrom[startNode] = startNode; // Points to itself initially
+    size_t nodesIncluded = 1;
+
+    // Construct the tour
+    while (nodesIncluded < numCages) {
+        size_t randomNode = getRandomNode(includedInMST, numCages);
+        double minDistanceIncrease = std::numeric_limits<double>::max();
+        size_t insertAfter = startNode; // Default to start node
+        size_t insertBefore = cageComingFrom[startNode]; // Default to the second node in the path
+
+        // Find the best position to insert the random node
+        for (size_t i = 0; i < numCages; i++) {
+            if (includedInMST[i] && cageComingFrom[i] != std::numeric_limits<size_t>::max()) {
+                size_t nextI = cageComingFrom[i];
+                double distanceToI = calculateDistance(vertices[randomNode], vertices[i]);
+                double distanceFromItoNext = calculateDistance(vertices[i], vertices[nextI]);
+                double newDistanceIfInserted = distanceToI + calculateDistance(vertices[randomNode], vertices[nextI]) - distanceFromItoNext;
+                if (newDistanceIfInserted < minDistanceIncrease) {
+                    minDistanceIncrease = newDistanceIfInserted;
+                    insertAfter = i;
+                    insertBefore = nextI;
                 }
             }
-
-            cageComingFrom[insertAfter] = randomNode;
-            cageComingFrom[randomNode] = insertBefore;
-
-            includedInMST[randomNode] = true;
-            nodesIncluded++;
         }
 
-        return cageComingFrom;
+        // Insert the random node at the best position in the tour
+        cageComingFrom[insertAfter] = randomNode;
+        cageComingFrom[randomNode] = insertBefore;
+
+        includedInMST[randomNode] = true;
+        nodesIncluded++;
     }
 
-    void outputPath(const std::vector<size_t> &cageParent) {
-        double totalWeight = 0;
-        std::vector<size_t> tour;
-        tour.reserve(numCages); 
-        size_t currentCage = 0; 
+    return cageComingFrom;
+}
 
-        for (size_t i = 0; i < numCages; ++i) {
-            tour.push_back(currentCage);
-            totalWeight += distanceMatrix[currentCage][cageParent[currentCage]];
-            currentCage = cageParent[currentCage];
-        }
 
-        totalWeight += distanceMatrix[currentCage][0];
-        std::cout << totalWeight << '\n';
-
-        for (size_t i = 0; i < tour.size(); ++i) {
-            std::cout << tour[i];
-            if (i < tour.size() - 1) {
-                std::cout << ' ';
-            }
-        }
-        std::cout << '\n';
+void FASTZoo::outputPath(std::vector<size_t> &cageParent) {
+    double totalWeight = 0;
+    std::vector<size_t> tour;
+    tour.reserve(numCages); 
+    size_t currentCage = 0; 
+    // Reconstruct the tour from cageParent
+    for (size_t i = 0; i < numCages; ++i) {
+        tour.push_back(currentCage);
+        totalWeight += calculateDistance(vertices[currentCage], vertices[cageParent[currentCage]]);
+        currentCage = cageParent[currentCage];
     }
-};
+    //add weight to return to start
+    totalWeight += calculateDistance(vertices[currentCage], vertices[0]);
+    // Output the total weight
+    std::cout << totalWeight << '\n';
+
+    // Output the tour sequence
+    for (size_t i = 0; i < tour.size(); ++i) {
+        std::cout << tour[i];
+        if (i < tour.size() - 1) {
+            std::cout << ' ';
+        }
+    }
+    std::cout << '\n';
+}

@@ -105,7 +105,6 @@ void MSTZoo::PrimMST()
     }
 
     std::cout << totalMinimumWeight << '\n';
-    // Output the edges of the MST in the same way as kruskalMST
     for (size_t cageIndex = 1; cageIndex < numCages; ++cageIndex)
     {
         size_t smallerInt = std::min(cageParent[cageIndex], cageIndex);
