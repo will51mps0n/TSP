@@ -1,7 +1,8 @@
-//3E33912F8BAA7542FC4A1585D2DB6FE0312725B9 
+//3E33912F8BAA7542FC4A1585D2DB6FE0312725B9
+#include <random>
+#include <utility>
 #include "helperStructs.h"
 #include "globalFunctions.h"
-#include <random>
 
 class FASTZoo
 {
@@ -13,7 +14,7 @@ public:
     FASTZoo(uint32_t cages, std::vector<Vertex> &v) : numCages(cages), vertices(v) {}
     void outputPath(std::vector<size_t> &cageParent);
     std::vector<size_t> createOptimalPath();
-    double getTotalWeight(std::vector<size_t> &cageParent);
+    std::pair<std::vector<size_t>, double> getOptTourAndLength(std::vector<size_t> &cageParent);
 };
 
 size_t getRandomNode(const std::vector<bool>& includedInMST, uint32_t numCages) {
@@ -71,6 +72,25 @@ std::vector<size_t> FASTZoo::createOptimalPath() {
     }
 
     return cageComingFrom;
+}
+
+std::pair<std::vector<size_t>, double> FASTZoo::getOptTourAndLength(std::vector<size_t> &cageParent) 
+{
+    double totalWeight = 0;
+    std::vector<size_t> tour;
+    tour.reserve(numCages); 
+    size_t currentCage = 0; 
+    // Reconstruct the tour from cageParent
+    for (size_t i = 0; i < numCages; ++i) {
+        tour.push_back(currentCage);
+        totalWeight += calculateDistance(vertices[currentCage], vertices[cageParent[currentCage]]);
+        currentCage = cageParent[currentCage];
+    }
+    //add weight to return to start
+    totalWeight += calculateDistance(vertices[currentCage], vertices[0]);
+    // Output the total weight
+    std::pair<std::vector<size_t>, double> optTourAndLength(tour, totalWeight);
+    return optTourAndLength;
 }
 
 
