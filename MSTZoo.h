@@ -7,94 +7,97 @@ class MSTZoo
 private:
     uint32_t numCages;
     std::vector<Vertex> vertices;
+    enum CageType
+    {
+        Wild,
+        Border,
+        Outer
+    };
+    std::vector<CageType> cageTypes;
+    void setCageTypes();
+
 public:
-    MSTZoo(uint32_t cages, std::vector<Vertex> &v) : 
-                      numCages(cages),vertices(v) {}
+    MSTZoo(uint32_t cages, std::vector<Vertex> &v) : numCages(cages), vertices(v) {cageTypes.resize(numCages);}
 
     void PrimMST();
 };
 
-//Normal functions just needed for MST
-bool notCompatibleCages(const Vertex &a, const Vertex &b)
+void MSTZoo::setCageTypes()
 {
-    uint8_t wild = 0;
-    uint8_t outer = 0;
-    std::vector<Vertex> validateVertices;
-    validateVertices.push_back(a);
-    validateVertices.push_back(b);
-    for (auto it = validateVertices.begin(); it != validateVertices.end(); ++it)
-    {
-        if (it->x < 0 && it->y < 0)
+    for (size_t i = 0; i < numCages; ++i) {
+        if (vertices[i].x < 0 && vertices[i].y < 0) 
         {
-            wild++;
+            cageTypes[i] = Wild;
         }
-        else if ((it->x == 0 && it->y <= 0) || (it->y == 0 && it->x <= 0))
-        {
-            break;
+        else if ((vertices[i].x == 0 && vertices[i].y <= 0) || (vertices[i].y == 0 && vertices[i].x <= 0)) {
+            cageTypes[i] = Border;
         }
-        else
-        {
-            outer++;
+        else {
+            cageTypes[i] = Outer;
         }
     }
-    return ((wild == 1) && (outer == 1));
+    return;
 }
 
-double calculateCompatibleDistance(const Vertex &a, const Vertex &b)
-{
-    // Check for direct connection between wild and other animal cages
-    if (notCompatibleCages(a, b))
-    {
-        return std::numeric_limits<double>::infinity();
-    }
-    // Otherwise, return the Euclidean distance
-    return calculateDistance(a, b);
-}
+// Normal functions just needed for MST
+
 
 // add distance function inside - one takes in MST, one that doesnt
 // vertex can just be x and y
 // add flag to see if cagetype should be considered
-void MSTZoo::PrimMST() {
-    // Initialize data structures
+void MSTZoo::PrimMST()
+{
+    setCageTypes();
     std::vector<double> minimumEdgeWeights(numCages, std::numeric_limits<double>::infinity());
     std::vector<bool> includedInMST(numCages, false);
     std::vector<size_t> cageParent(numCages, std::numeric_limits<size_t>::max());
-    std::priority_queue<std::pair<double, size_t>, std::vector<std::pair<double, size_t>>, std::greater<>> pq;
+    minimumEdgeWeights[0] = 0.0; // Initialize starting vertex's weight to 0 to pick first
 
-    // Start with the first node
-    minimumEdgeWeights[0] = 0.0; 
-    pq.push({0.0, 0});
+    for (size_t i = 0; i < numCages; ++i)
+    {
+        size_t selectedCage = std::numeric_limits<size_t>::max();
 
-    while (!pq.empty()) {
-        size_t selectedCage = pq.top().second;
-        pq.pop();
+        // Find the cage with the smallest connecting edge not already included in the MST
+        for (size_t nextCageIndex = 0; nextCageIndex < numCages; ++nextCageIndex)
+        {
+            if (!includedInMST[nextCageIndex] &&
+                (selectedCage == std::numeric_limits<size_t>::max() || minimumEdgeWeights[nextCageIndex] < minimumEdgeWeights[selectedCage]))
+            {
+                selectedCage = nextCageIndex;
+            }
+        }
 
-        // Skip if already included in MST
-        if (includedInMST[selectedCage]) continue;
-
-        // Include this cage in the MST
-        includedInMST[selectedCage] = true;
+        includedInMST[selectedCage] = true; // Include this cage in the MST
 
         // Update the minimum edge weight for each cage connected to the selected cage
-        for (size_t adjacentCageIndex = 0; adjacentCageIndex < numCages; ++adjacentCageIndex) {
-            // Skip if it's the selected cage itself or if it's already included in the MST
-            if (adjacentCageIndex == selectedCage || includedInMST[adjacentCageIndex]) continue;
+        for (size_t adjacentCageIndex = 0; adjacentCageIndex < numCages; ++adjacentCageIndex)
+        {
+            if (adjacentCageIndex != selectedCage && !includedInMST[adjacentCageIndex])
+            {
+                double edgeWeight = std::numeric_limits<double>::max();
 
-            double edgeWeight = calculateCompatibleDistance(vertices[selectedCage], vertices[adjacentCageIndex]);
+                // Check for direct connection between wild and other animal cages
+                if (!((cageTypes[selectedCage] == Wild && cageTypes[adjacentCageIndex] == Outer) 
+                    || (cageTypes[selectedCage] == Outer && cageTypes[adjacentCageIndex] == Wild)))
+                {
+                    edgeWeight = calculateDistance(vertices[selectedCage], vertices[adjacentCageIndex]);
+                }
 
-            // Update if a smaller edge weight is found
-            if (edgeWeight < minimumEdgeWeights[adjacentCageIndex]) {
-                minimumEdgeWeights[adjacentCageIndex] = edgeWeight;
-                cageParent[adjacentCageIndex] = selectedCage;
-                pq.push({edgeWeight, adjacentCageIndex});
+                if (edgeWeight < minimumEdgeWeights[adjacentCageIndex])
+                {
+                    cageParent[adjacentCageIndex] = selectedCage;
+                    minimumEdgeWeights[adjacentCageIndex] = edgeWeight;
+                }
             }
         }
     }
 
-    // Calculate the total weight of the MST and output the edges
     double totalMinimumWeight = 0;
-    for (size_t cageIndex = 1; cageIndex < numCages; ++cageIndex) {
-        if (cageParent[cageIndex] == std::numeric_limits<size_t>::max()) {
+    // Calculate the total weight of the MST
+    for (size_t cageIndex = 1; cageIndex < numCages; ++cageIndex)
+    {
+        if (cageParent[cageIndex] == std::numeric_limits<size_t>::max())
+        {
             std::cerr << "Cannot construct MST: Disconnected Graph" << '\n';
             exit(1);
         }
@@ -102,7 +105,9 @@ void MSTZoo::PrimMST() {
     }
 
     std::cout << totalMinimumWeight << '\n';
-    for (size_t cageIndex = 1; cageIndex < numCages; ++cageIndex) {
+    // Output the edges of the MST in the same way as kruskalMST
+    for (size_t cageIndex = 1; cageIndex < numCages; ++cageIndex)
+    {
         size_t smallerInt = std::min(cageParent[cageIndex], cageIndex);
         size_t largerInt = std::max(cageParent[cageIndex], cageIndex);
         std::cout << smallerInt << " " << largerInt << '\n';
