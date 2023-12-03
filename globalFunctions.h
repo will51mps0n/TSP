@@ -3,4 +3,6 @@
 
 std::vector<Vertex> readInput(uint32_t &cages);
 double calculateDistance(const Vertex &a, const Vertex &b);
-double calculateTotalDistance(const std::vector<size_t>& tour, const std::vector<Vertex>& vertices);
+double calculatePathDistance(const std::vector<size_t> &tour, const std::vector<Vertex> &vertices);
+double calculateTourDistance(const std::vector<size_t>& tour, const std::vector<Vertex>& vertices);
+double GetMstWeight(const std::vector<Vertex>& vertices);

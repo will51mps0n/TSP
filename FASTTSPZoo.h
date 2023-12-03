@@ -1,8 +1,7 @@
-//3E33912F8BAA7542FC4A1585D2DB6FE0312725B9
-#include <random>
-#include <utility>
+//3E33912F8BAA7542FC4A1585D2DB6FE0312725B9 
 #include "helperStructs.h"
 #include "globalFunctions.h"
+#include <random>
 
 class FASTZoo
 {
@@ -30,7 +29,7 @@ size_t getRandomNode(const std::vector<bool>& includedInMST, uint32_t numCages) 
     return randomNode;
 }
 
-// Using random random insertion technique for path creation
+// Using random random insertion heuristic for path creation
 std::vector<size_t> FASTZoo::createOptimalPath() {
     std::vector<bool> includedInMST(numCages, false);
     std::vector<size_t> cageComingFrom(numCages, std::numeric_limits<size_t>::max());
@@ -74,25 +73,6 @@ std::vector<size_t> FASTZoo::createOptimalPath() {
     return cageComingFrom;
 }
 
-std::pair<std::vector<size_t>, double> FASTZoo::getOptTourAndLength(std::vector<size_t> &cageParent) 
-{
-    double totalWeight = 0;
-    std::vector<size_t> tour;
-    tour.reserve(numCages); 
-    size_t currentCage = 0; 
-    // Reconstruct the tour from cageParent
-    for (size_t i = 0; i < numCages; ++i) {
-        tour.push_back(currentCage);
-        totalWeight += calculateDistance(vertices[currentCage], vertices[cageParent[currentCage]]);
-        currentCage = cageParent[currentCage];
-    }
-    //add weight to return to start
-    totalWeight += calculateDistance(vertices[currentCage], vertices[0]);
-    // Output the total weight
-    std::pair<std::vector<size_t>, double> optTourAndLength(tour, totalWeight);
-    return optTourAndLength;
-}
-
 
 void FASTZoo::outputPath(std::vector<size_t> &cageParent) {
     double totalWeight = 0;
@@ -118,4 +98,24 @@ void FASTZoo::outputPath(std::vector<size_t> &cageParent) {
         }
     }
     std::cout << '\n';
+}
+
+
+std::pair<std::vector<size_t>, double> FASTZoo::getOptTourAndLength(std::vector<size_t> &cageParent) 
+{
+    double totalWeight = 0;
+    std::vector<size_t> tour;
+    tour.reserve(numCages); 
+    size_t currentCage = 0; 
+    // Reconstruct the tour from cageParent
+    for (size_t i = 0; i < numCages; ++i) {
+        tour.push_back(currentCage);
+        totalWeight += calculateDistance(vertices[currentCage], vertices[cageParent[currentCage]]);
+        currentCage = cageParent[currentCage];
+    }
+    //add weight to return to start
+    totalWeight += calculateDistance(vertices[currentCage], vertices[0]);
+    // Output the total weight
+    std::pair<std::vector<size_t>, double> optTourAndLength(tour, totalWeight);
+    return optTourAndLength;
 }

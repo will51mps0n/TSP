@@ -96,21 +96,15 @@ int main(int argc, char *argv[])
     }
     else if (options.mode == Mode::OPTTSP)
     {
-        // create optPath and Wight from gastZooclass
-        //  Create a FASTZoo object on the heap
-        FASTZoo *fastPtr = new FASTZoo(numCages, allVertices);
-
-        // Create and get the optimal path
-        std::vector<size_t> optVertices = fastPtr->createOptimalPath();
-
-        // Get the optimal tour and its length
-        std::pair<std::vector<size_t>, double> initialOptTourAndLength = fastPtr->getOptTourAndLength(optVertices);
-
+        std::pair<std::vector<size_t>, double> initialOptTourAndLength;
+        {
+            FASTZoo zoo = FASTZoo(numCages, allVertices);
+            std::vector<size_t> optVertices = zoo.createOptimalPath();
+            initialOptTourAndLength = zoo.getOptTourAndLength(optVertices);
+        }
         // Extract the optimal tour length
-        OPTZoo zoo(numCages, allVertices, initialOptTourAndLength.first, initialOptTourAndLength.second);
-        // Delete the FASTZoo object to free up memory
-        delete fastPtr;
-
+        OPTZoo zoo(allVertices, initialOptTourAndLength.first, initialOptTourAndLength.second);
+        zoo.algorithm();
         // Now, optVertices and initialOptLength are the only remaining variables with relevant data
     }
     return 0;
