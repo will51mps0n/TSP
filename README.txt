@@ -1,5 +1,4 @@
-We've included the test from the project specification,
-spec-test.txt, along without output for all three modes.
+Ive included many tests, along without output for all three modes.
 
 There are several other input files: sample-ab.txt, sample-c.txt,
 sample-d.txt, sample-e.txt, and sample-f.txt.
@@ -14,9 +13,7 @@ that it has been shifted up and to the right by 50, putting all
 vertices in Quadrant 1 of the graph.  If you get the same answers
 when running samples c and d in MST mode, and sample c output is
 wrong, it's because you forgot to account for transitioning from
-one region to another.  When running OPTTSP, if you get sample d
-right but sample c wrong, it's because you forgot that in FAST
-and OPT, you DO NOT consider the border between regions.
+one region to another. 
 
 The file sample-e.txt has 11 vertices selected from sample d;
 the vertices were selected so that many fast and optimal solutions
